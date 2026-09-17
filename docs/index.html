@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Co-SDR: Cochlear-Domain SDR Loss for Speech Enhancement | Audio Samples</title>
+
+<meta name="description"
+      content="Audio samples for Co-SDR, a cochlear-domain SDR loss for biophysically-informed multichannel speech enhancement. Compare SI-SDR and Co-SDR systems.">
+<meta property="og:type" content="article">
+<meta property="og:title"
+      content="Co-SDR: A Cochlear-Domain SDR Loss for Speech Enhancement">
+<meta property="og:description"
+      content="Audio samples comparing SI-SDR and Co-SDR for biophysically-informed multichannel speech enhancement.">
+<meta property="og:url"
+      content="https://effajr.github.io/torchconnear">
+
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="page">
+
+  <header>
+    <h1> Co-SDR: A Cochlear-Domain SDR Loss for Biophysically-Informed Speech Enhancement </h1>
+    <p id="authors">François Effa<sup>*</sup>, Romain Serizel</p>
+
+    <h2>Audio Samples</h2>
+    <p>
+      Audio samples complementing the experimental results reported in the paper <a href="#ref-1">[1]</a>.
+      They illustrate the perceptual differences between speech enhancement systems trained with standard SI-SDR and the proposed cochlear-domain Co-SDR loss.
+      A PyTorch implementation of the CoNNear model (with pretrained weights) and the associated Co-SDR loss function, is available at
+      <a href="https://github.com/effajr/torch_CoNNear" target="_blank" rel="noopener">GitHub repository</a>.
+    </p>
+
+    <p>The audio samples correspond to the same utterance presented in broadband stationary speech-shaped noise in a reverberant room, with the room acoustics reproduced 
+      by convolution with a measured room impulse response (RIR) from the <a href="https://www.eurasip.org/Proceedings/Eusipco/Eusipco2023/pdfs/0000126.pdf">
+      BinauRec dataset [2]</a>. The SNR values refer to the signal-to-noise ratio measured at the microphone input during speech-active intervals.
+
+    <h3>References</h3>
+        <div class="reference">
+          <span class="ref-number", id="ref-1">[1]</span>
+          F. Effa and R. Serizel,
+          “Co-SDR: A Cochlear-Domain SDR Loss for Biophysically-Informed Speech Enhancement,”
+          <i>in Proc. IWAENC</i>, 2026. <br>
+
+          <span class="ref-number">[2]</span>
+          L. Delebecque and R. Serizel,
+          “BinauRec: A dataset to test the influence of the use of room impulse responses
+          on binaural speech enhancement,”
+          <i>in Proc. EUSIPCO</i>, 2023, p. 126.
+          <a href="https://www.eurasip.org/Proceedings/Eusipco/Eusipco2023/pdfs/0000126.pdf" target="_blank" rel="noopener">
+            [PDF]
+          </a>
+        </div>
+    </p>
+  </header>
+
+  <div class="controls-row">
+    <nav class="phrase-selector" id="phraseSelector" aria-label="Select sentence"></nav>
+    <div class="clean-ref" id="cleanRef"></div>
+  </div>
+
+  <div id="modelPanels"></div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
