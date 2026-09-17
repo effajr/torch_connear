@@ -304,7 +304,7 @@ function renderModelPanels() {
 
   const heading = document.createElement("h2");
   heading.id = "models-heading";
-  heading.textContent = "Enhanced outputs";
+  heading.textContent = "Enhancement examples";
 
   section.appendChild(heading);
 
