@@ -3,10 +3,10 @@ const CONFIG = {
   snrColumnWidth: 64,
 
   phrases: [
-    { id: "1221-135767-0017", label: "Utterance 1" },
-    { id: "4077-13751-0015", label: "Utterance 2" },
-    { id: "2961-960-0018", label: "Utterance 3" },
-    { id: "8455-210777-0000", label: "Utterance 4" }
+    { id: "1221-135767-0017", label: "Example 1" },
+    { id: "4077-13751-0015", label: "Example 2" },
+    { id: "2961-960-0018", label: "Example 3" },
+    { id: "8455-210777-0000", label: "Example 4" }
   ],
 
   snrLevels: [-6, -3, 0, 3],
