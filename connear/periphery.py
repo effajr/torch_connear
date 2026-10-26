@@ -31,6 +31,12 @@ class CoNNearPeriphery(nn.Module):
     computes the center frequencies of the simulated cochlear channels from
     the predefined configuration.
 
+    The IHC and ANF submodules can use activation checkpointing to reduce
+    memory usage when gradients are needed (see `use_checkpoint`,
+    `checkpoint_chunks` and `CoNNear`). The cochlea is never checkpointed:
+    its activations are small compared with those of the IHC and ANF
+    stages, which operate on the full `(n_cf, time)` representation.
+
     Attributes:
         n_cf (int): Number of simulated cochlear frequency channels.
             Determines the dimensionality of the cochlear representation.
@@ -54,6 +60,15 @@ class CoNNearPeriphery(nn.Module):
         load_weights (bool): Whether to load pretrained weights from the
             original publication. If `False`, a warning is issued. Defaults
             to `True`.
+        use_checkpoint (bool): Whether the IHC and ANF submodules use
+            activation checkpointing when gradients are recorded. Trades
+            roughly one extra forward pass of these submodules for a much
+            lower memory usage. Does not change the outputs. Can be changed
+            later with `set_checkpointing`.
+        checkpoint_chunks (int): Number of segments along the frequency
+            axis used by the checkpointed IHC and ANF submodules. The peak
+            memory of the backward pass is roughly divided by this number.
+            Can be changed later with `set_checkpointing`.
         cochlea (CoNNearCochlea): The cochlear submodule.
         ihc (CoNNearIHC): The inner hair cell submodule. Only set if
             `use_ihc=True`.
@@ -71,10 +86,12 @@ class CoNNearPeriphery(nn.Module):
             Defaults to `(3, 3, 13)`.
         load_weights (bool): See `Attributes`. Defaults to `True`.
         pad_context (bool): See `Attributes`. Defaults to `True`.
+        use_checkpoint (bool): See `Attributes`. Defaults to `False`.
+        checkpoint_chunks (int): See `Attributes`. Defaults to `1`.
 
     Raises:
-        ValueError: If `n_cf` is not 21 or 201, or if `use_anf=True` but
-            `use_ihc=False`.
+        ValueError: If `n_cf` is not 21 or 201, if `use_anf=True` but
+            `use_ihc=False`, or if `checkpoint_chunks` is lower than 1.
     """
     def __init__(self,
                  n_cf: int=201,
@@ -83,7 +100,9 @@ class CoNNearPeriphery(nn.Module):
                  sum_anf: bool=True,
                  anf_distribution: Tuple[int, int, int]=(3, 3, 13),
                  load_weights: bool=True,
-                 pad_context: bool=True) -> None:
+                 pad_context: bool=True,
+                 use_checkpoint: bool=False,
+                 checkpoint_chunks: int=1) -> None:
         super().__init__()
         
         if n_cf not in {21, 201}:
@@ -107,6 +126,8 @@ class CoNNearPeriphery(nn.Module):
             self._define_cf()
         else:
             warnings.warn("Warning: It is not recommended to use CoNNearPeriphery without loading the learned parameters.")
+        # Activation checkpointing of the IHC and ANF submodules
+        self.set_checkpointing(use_checkpoint, checkpoint_chunks)
             
     def _load_weights(self) -> None:
         self.cochlea.load_state_dict(torch.load(os.path.join(CP_DIR, f"cochlea_{self.n_cf}cf.pth"), weights_only=True))
@@ -129,6 +150,28 @@ class CoNNearPeriphery(nn.Module):
         if self.n_cf == 21:
             self.cfs = self.cfs[::10]
 
+    def set_checkpointing(self, enabled: bool, chunks: int=1) -> None:
+        """Enables or disables activation checkpointing in the IHC and ANF submodules.
+
+        Args:
+            enabled (bool): Whether to use activation checkpointing. See
+                `use_checkpoint`.
+            chunks (int): Number of segments along the frequency axis. See
+                `checkpoint_chunks`. Defaults to `1`.
+
+        Raises:
+            ValueError: If `chunks` is lower than 1.
+        """
+        if chunks < 1:
+            raise ValueError(f"checkpoint_chunks must be >= 1, got {chunks} instead.")
+        self.use_checkpoint = enabled
+        self.checkpoint_chunks = chunks
+        for name in ("ihc", "anf_l", "anf_m", "anf_h"):
+            module = getattr(self, name, None)
+            if module is not None:
+                module.use_checkpoint = enabled
+                module.checkpoint_chunks = chunks
+
     def forward(self, x: Tensor) -> Tensor:
         y = self.cochlea(x)
         if self.use_ihc:
@@ -144,8 +187,10 @@ class CoNNearPeriphery(nn.Module):
     
 
 class CoNNearCochlea(CoNNear):
-    def __init__(self, n_cf=201, encoder_is_1d: bool=True, crop: bool=True, pad_context: bool=False) -> None:
-        super().__init__(encoder_is_1d=encoder_is_1d, crop=crop, pad_context=pad_context)
+    def __init__(self, n_cf=201, encoder_is_1d: bool=True, crop: bool=True, pad_context: bool=False,
+                 use_checkpoint: bool=False) -> None:
+        super().__init__(encoder_is_1d=encoder_is_1d, crop=crop, pad_context=pad_context,
+                         use_checkpoint=use_checkpoint)
         self.n_cf = n_cf
         self.encoder = nn.ModuleList([Encoder1DLayer(in_channels=1),
                                       Encoder1DLayer(),
@@ -158,8 +203,10 @@ class CoNNearCochlea(CoNNear):
 
 
 class CoNNearIHC(CoNNear):
-    def __init__(self, crop: bool=True, pad_context: bool=False) -> None:
-        super().__init__(crop=crop, pad_context=pad_context)
+    def __init__(self, crop: bool=True, pad_context: bool=False,
+                 use_checkpoint: bool=False, checkpoint_chunks: int=1) -> None:
+        super().__init__(crop=crop, pad_context=pad_context,
+                         use_checkpoint=use_checkpoint, checkpoint_chunks=checkpoint_chunks)
         self.encoder = nn.ModuleList([Encoder2DLayer(in_channels=1),
                                       Encoder2DLayer(),
                                       Encoder2DLayer()])
@@ -169,8 +216,10 @@ class CoNNearIHC(CoNNear):
 
 
 class CoNNearANF(CoNNear):
-    def __init__(self, anf_type: str, pad_context: bool=False) -> None:
-        super().__init__(cropping=(7936, 256), pad_context=pad_context)
+    def __init__(self, anf_type: str, pad_context: bool=False,
+                 use_checkpoint: bool=False, checkpoint_chunks: int=1) -> None:
+        super().__init__(cropping=(7936, 256), pad_context=pad_context,
+                         use_checkpoint=use_checkpoint, checkpoint_chunks=checkpoint_chunks)
         if anf_type == "l":
             self.encoder = nn.ModuleList([Encoder2DLayer(in_channels=1 if i == 0 else 64, 
                                                         out_channels=64, 
