@@ -34,6 +34,10 @@ class CoSDRLoss(nn.Module):
         use_anf (bool): If `True`, includes the auditory nerve
             fiber (ANF) stages in the auditory processing pipeline.
             Requires `use_ihc=True`. Defaults to `False`.
+        use_checkpoint (bool): If `True`, uses checkpointing in the
+            CoNNear model to reduce memory usage. Defaults to `False`.
+        checkpoint_chunks (int): Number of chunks used when checkpointing
+            the CoNNear model. Defaults to `1`.
         norm (bool): If `True`, normalizes auditory representations 
             by their RMS energy before computing the loss.
             Defaults to `True`.
@@ -47,13 +51,16 @@ class CoSDRLoss(nn.Module):
                  use_ihc: bool=False,
                  use_anf: bool=False,
                  norm: bool=True,
+                 use_checkpoint: bool=False,
+                 checkpoint_chunks: int=1,
                  scale_invariant: bool=True) -> None:
         super(CoSDRLoss, self).__init__()
         self.loss_fn = neg_nsdr
         self.norm = norm
         self.scale_invariant = scale_invariant
         
-        self.connear = CoNNearPeriphery(n_cf=n_cf, use_ihc=use_ihc, use_anf=use_anf)
+        self.connear = CoNNearPeriphery(n_cf=n_cf, use_ihc=use_ihc, use_anf=use_anf,
+                                        use_checkpoint=use_checkpoint, checkpoint_chunks=checkpoint_chunks)
         self.connear.eval()
         for p in self.connear.parameters():
             p.requires_grad = False
