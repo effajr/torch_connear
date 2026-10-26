@@ -1,0 +1,11 @@
+[project]
+name = "torchconnear"
+version = "0.1.0"
+description = "A PyTorch implementation of the CoNNear auditory periphery model and the associated cochlear-domain loss function"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.9.3,<0.10.0"]
+build-backend = "uv_build"
