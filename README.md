@@ -27,6 +27,8 @@ model = CoNNearPeriphery(
     use_anf=True,
     sum_anf=True,
     load_weights=True,
+    use_checkpoint=True,
+    checkpoint_chunks=1,
 )
 model.eval()
 
@@ -41,6 +43,7 @@ with torch.no_grad():
 - `sum_anf=True` combines the low-, medium-, and high-spontaneous-rate outputs by weighted summation; otherwise, the three outputs are concatenated along the channel dimension.
 - `load_weights=True` loads the pretrained parameters shipped with the repository from the `pth/` directory.
 - `pad_context=True` pads the input with context samples to preserve continuity across windowed processing.
+- `use_checkpoint=True` reduces training memory usage by recomputing IHC and ANF activations during the backward pass; `checkpoint_chunks` optionally splits the frequency channels into smaller segments.
 
 
 ### Notes on the model
@@ -62,6 +65,8 @@ criterion = CoSDRLoss(
     use_ihc=False,
     use_anf=False,
     norm=True,
+    use_checkpoint=True,
+    checkpoint_chunks=1,
     scale_invariant=True,
 )
 
